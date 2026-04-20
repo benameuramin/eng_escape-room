@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Locked Classroom 🔐 — by Amin Ben Ameur</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1a3a2a;
+    --chalk: #f5f0e8;
+    --chalk2: #d4cec0;
+    --accent: #f4c430;
+    --accent2: #ff6b6b;
+    --accent3: #4ecdc4;
+    --accent4: #a29bfe;
+    --correct: #55efc4;
+    --wrong: #ff7675;
+    --card: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--green);
+    min-height: 100vh;
+    color: var(--chalk);
+    overflow-x: hidden;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.03) 39px, rgba(255,255,255,0.03) 40px);
+  }
+  .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
+  .screen.active { display: flex; animation: fadeIn 0.5s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-8px)} 80%{transform:translateX(8px)} }
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+  @keyframes confetti-fall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+  @keyframes starPop { 0%{transform:scale(0) rotate(-30deg);opacity:0} 60%{transform:scale(1.3) rotate(10deg);opacity:1} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+
+  /* TYPOGRAPHY */
+  h1 { font-family: 'Fredoka One', cursive; font-size: clamp(2.2rem, 8vw, 3.8rem); letter-spacing: 1px; }
+  h2 { font-family: 'Fredoka One', cursive; font-size: clamp(1.4rem, 5vw, 2rem); }
+  h3 { font-family: 'Fredoka One', cursive; font-size: clamp(1.1rem, 4vw, 1.5rem); }
+
+  /* CARD */
+  .card {
+    background: var(--card);
+    border: 1.5px solid var(--card-border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 500px;
+    backdrop-filter: blur(6px);
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap { width: 100%; max-width: 500px; margin-bottom: 18px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--chalk2); margin-bottom: 6px; }
+  .progress-bar { height: 10px; background: rgba(255,255,255,0.1); border-radius: 20px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent3), var(--accent)); border-radius: 20px; transition: width 0.6s cubic-bezier(.68,-0.55,.27,1.55); }
+
+  /* BUTTONS */
+  .btn {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 14px 28px;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    letter-spacing: 0.3px;
+  }
+  .btn:hover { transform: translateY(-3px); }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #1a1a1a; box-shadow: 0 6px 0 #b8920f; }
+  .btn-primary:hover { box-shadow: 0 8px 0 #b8920f; }
+  .btn-primary:active { box-shadow: 0 2px 0 #b8920f; transform: translateY(4px); }
+  .btn-danger { background: var(--accent2); color: white; box-shadow: 0 6px 0 #c0392b; }
+  .btn-outline { background: transparent; color: var(--chalk); border: 2px solid var(--card-border); }
+  .btn-outline:hover { background: var(--card); }
+
+  /* OPTION BUTTONS */
+  .options { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+  .option-btn {
+    background: rgba(255,255,255,0.07);
+    border: 2px solid rgba(255,255,255,0.15);
+    color: var(--chalk);
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 18px;
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .option-btn:hover:not(:disabled) { background: rgba(255,255,255,0.13); border-color: var(--accent3); transform: translateX(5px); }
+  .option-btn.correct { background: rgba(85,239,196,0.2); border-color: var(--correct); animation: pop 0.4s ease; }
+  .option-btn.wrong { background: rgba(255,118,117,0.2); border-color: var(--wrong); animation: shake 0.4s ease; }
+  .option-btn:disabled { cursor: not-allowed; }
+  .option-letter {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; flex-shrink: 0;
+  }
+
+  /* FEEDBACK */
+  .feedback {
+    margin-top: 16px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 15px;
+    display: none;
+    animation: slideUp 0.3s ease;
+    line-height: 1.5;
+  }
+  .feedback.correct { background: rgba(85,239,196,0.15); border: 1.5px solid var(--correct); color: var(--correct); display: block; }
+  .feedback.wrong { background: rgba(255,118,117,0.15); border: 1.5px solid var(--wrong); color: var(--wrong); display: block; }
+
+  /* TIMER */
+  .timer-wrap { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.25); border-radius: 30px; padding: 8px 18px; font-family: 'Fredoka One', cursive; font-size: 1.3rem; margin-bottom: 16px; }
+  .timer-icon { animation: pulse 1s infinite; }
+  .timer-warn { color: var(--accent2); }
+
+  /* SCORE BADGES */
+  .score-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); border-radius: 30px; padding: 6px 16px; font-weight: 800; font-size: 14px; }
+
+  /* START SCREEN */
+  #start .hero-emoji { font-size: 80px; margin-bottom: 10px; animation: bounce 2s infinite; display: block; }
+  #start h1 { color: var(--accent); text-shadow: 3px 3px 0 rgba(0,0,0,0.3); text-align: center; margin-bottom: 8px; }
+  #start .tagline { color: var(--chalk2); font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 24px; max-width: 340px; }
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; width: 100%; max-width: 400px; }
+  .feature-item { background: rgba(255,255,255,0.07); border-radius: 12px; padding: 12px; text-align: center; font-size: 13px; font-weight: 700; color: var(--chalk2); }
+  .feature-item .fi { font-size: 22px; display: block; margin-bottom: 4px; }
+
+  /* CHALLENGE HEADER */
+  .challenge-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .challenge-num { font-family: 'Fredoka One', cursive; font-size: 13px; color: var(--accent3); background: rgba(78,205,196,0.15); padding: 4px 12px; border-radius: 20px; }
+  .question-text { font-size: 17px; font-weight: 700; line-height: 1.5; color: var(--chalk); margin: 12px 0 4px; }
+  .question-sub { font-size: 13px; color: var(--chalk2); margin-bottom: 4px; line-height: 1.5; }
+
+  /* MEMORY GRID */
+  .memory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+  .memory-item { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.15); border-radius: 14px; padding: 18px 10px; text-align: center; font-size: 36px; border-radius: 14px; transition: all 0.3s; }
+  .memory-item.hidden { filter: blur(20px); background: rgba(255,255,255,0.05); }
+
+  /* PATTERN */
+  .pattern-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 16px 0; justify-content: center; }
+  .pattern-box { width: 52px; height: 52px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: 'Fredoka One', cursive; font-size: 1.3rem; color: var(--chalk); }
+  .pattern-box.blank { background: rgba(244,196,48,0.15); border-color: var(--accent); color: var(--accent); }
+  .pattern-input { background: transparent; border: none; outline: none; font-family: 'Fredoka One', cursive; font-size: 1.4rem; color: var(--accent); width: 40px; text-align: center; }
+
+  /* FIND THE MISTAKE */
+  .text-passage { background: rgba(0,0,0,0.2); border-radius: 14px; padding: 18px; font-size: 15px; line-height: 1.8; margin: 16px 0; border-left: 4px solid var(--accent4); }
+  .highlight-word { cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: background 0.2s; font-weight: 700; }
+  .highlight-word:hover { background: rgba(162,155,254,0.25); }
+  .highlight-word.selected { background: rgba(162,155,254,0.4); outline: 2px solid var(--accent4); }
+  .highlight-word.correct-word { background: rgba(85,239,196,0.3); outline: 2px solid var(--correct); }
+  .highlight-word.wrong-word { background: rgba(255,118,117,0.3); outline: 2px solid var(--wrong); }
+
+  /* FACT CARDS */
+  .fact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+  .fact-card {
+    background: rgba(255,255,255,0.07);
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 14px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--chalk);
+    transition: all 0.18s;
+    text-align: center;
+  }
+  .fact-card:hover:not(:disabled) { border-color: var(--accent2); background: rgba(255,107,107,0.1); transform: scale(1.03); }
+  .fact-card .fact-emoji { font-size: 24px; display: block; margin-bottom: 8px; }
+  .fact-card.wrong { background: rgba(255,118,117,0.2); border-color: var(--wrong); animation: shake 0.4s; }
+  .fact-card.correct { background: rgba(85,239,196,0.15); border-color: var(--correct); }
+
+  /* WIN SCREEN */
+  #win { text-align: center; }
+  #win h1 { font-size: clamp(2.5rem, 10vw, 4rem); color: var(--accent); margin-bottom: 8px; }
+  .stars-row { display: flex; justify-content: center; gap: 10px; margin: 16px 0; }
+  .star { font-size: 40px; opacity: 0; animation: starPop 0.5s ease forwards; }
+  .star:nth-child(2) { animation-delay: 0.2s; }
+  .star:nth-child(3) { animation-delay: 0.4s; }
+  .final-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 20px 0; }
+  .final-stat { background: rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 8px; }
+  .final-stat-num { font-family: 'Fredoka One', cursive; font-size: 1.8rem; color: var(--accent); }
+  .final-stat-label { font-size: 11px; color: var(--chalk2); font-weight: 700; margin-top: 2px; }
+  .confetti-piece { position: fixed; width: 10px; height: 10px; border-radius: 2px; pointer-events: none; animation: confetti-fall 3s ease-in forwards; top: -20px; z-index: 999; }
+
+  /* NEXT BTN */
+  .next-wrap { margin-top: 20px; display: flex; justify-content: flex-end; }
+
+  /* ATTENTIVITY CLUE */
+  .clue-box { background: rgba(162,155,254,0.12); border: 1.5px solid var(--accent4); border-radius: 14px; padding: 14px 16px; margin-top: 14px; font-size: 13px; color: var(--accent4); font-weight: 600; line-height: 1.5; }
+
+  /* COUNTDOWN */
+  .countdown-big { font-family: 'Fredoka One', cursive; font-size: 5rem; color: var(--accent); text-align: center; animation: pop 0.3s ease; }
+
+  /* RIDDLE EMOJI */
+  .riddle-emoji { font-size: 50px; text-align: center; margin: 10px 0; }
+
+  @media (max-width: 400px) {
+    .fact-grid { grid-template-columns: 1fr; }
+    .final-stats { grid-template-columns: 1fr 1fr; }
+    .feature-grid { grid-template-columns: 1fr 1fr; }
+  }
+  /* MORSE CODE STYLES */
+  .morse-table { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin: 10px 0; }
+  .morse-cell { background: rgba(0,0,0,0.25); border-radius: 8px; padding: 5px 4px; text-align: center; font-size: 11px; line-height: 1.4; }
+  .morse-cell .ml { font-weight: 800; color: var(--accent); font-size: 13px; display:block; }
+  .morse-cell .mc { font-family: 'Courier New', monospace; color: var(--chalk2); font-size: 11px; letter-spacing: 1px; display:block; }
+  .morse-ref-toggle { background: rgba(162,155,254,0.15); border: 1.5px solid var(--accent4); border-radius: 12px; padding: 10px 14px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent4); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+  .morse-signal { font-family: 'Courier New', monospace; font-size: 17px; font-weight: 700; letter-spacing: 3px; color: var(--accent); background: rgba(0,0,0,0.3); border-radius: 12px; padding: 14px; text-align: center; margin: 12px 0; border: 1.5px solid rgba(244,196,48,0.3); word-break: break-all; line-height: 2; }
+  .morse-input-display { font-family: 'Courier New', monospace; font-size: 22px; letter-spacing: 3px; color: var(--accent3); background: rgba(0,0,0,0.3); border-radius: 10px; padding: 14px 16px; text-align: center; min-height: 56px; margin-bottom: 10px; word-break: break-all; border: 1.5px solid rgba(78,205,196,0.3); }
+  .morse-btns { display: flex; gap: 10px; margin-bottom: 10px; }
+  .morse-dot, .morse-dash { flex: 1; padding: 18px 10px; border: 2px solid rgba(255,255,255,0.2); border-radius: 14px; font-size: 26px; font-weight: 900; cursor: pointer; transition: all 0.1s; font-family: monospace; }
+  .morse-dot { background: rgba(78,205,196,0.15); color: var(--accent3); border-color: var(--accent3); }
+  .morse-dot:active { background: rgba(78,205,196,0.4); transform: scale(0.94); }
+  .morse-dash { background: rgba(244,196,48,0.15); color: var(--accent); border-color: var(--accent); }
+  .morse-dash:active { background: rgba(244,196,48,0.4); transform: scale(0.94); }
+  .morse-util-btns { display: flex; gap: 8px; margin-bottom: 12px; }
+  .morse-back { flex: 1; padding: 10px; border: 1.5px solid rgba(255,118,117,0.4); border-radius: 10px; background: rgba(255,118,117,0.1); color: var(--wrong); font-weight: 700; font-size: 13px; cursor: pointer; }
+  .morse-clear { flex: 1; padding: 10px; border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; background: rgba(255,255,255,0.06); color: var(--chalk2); font-weight: 700; font-size: 13px; cursor: pointer; }
+  .letter-progress { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .letter-pip { width: 38px; height: 38px; border-radius: 8px; background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: var(--chalk2); transition: all 0.3s; }
+  .letter-pip.done { background: rgba(85,239,196,0.2); border-color: var(--correct); color: var(--correct); }
+  .letter-pip.active { background: rgba(244,196,48,0.15); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px rgba(244,196,48,0.2); }
+  .phase-badge { display: inline-block; background: rgba(255,107,107,0.18); border: 1.5px solid var(--accent2); border-radius: 20px; padding: 4px 14px; font-size: 12px; font-weight: 800; color: var(--accent2); margin-bottom: 8px; }
+  /* BRANDING */
+  .brand-tag { display: inline-block; background: rgba(162,155,254,0.12); border: 1px solid rgba(162,155,254,0.3); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: var(--accent4); margin-top: 8px; }
+  .brand-footer { font-size: 11px; color: rgba(255,255,255,0.22); text-align: center; margin-top: 14px; letter-spacing: 0.4px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- ===== START SCREEN ===== -->
+<div class="screen active" id="start">
+  <span class="hero-emoji">🔐</span>
+  <h1>The Locked Classroom</h1>
+  <p class="tagline">5 brain-twisting challenges. One escape. Are you smart enough? 🤓</p>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="fi">🧠</span>Intelligence</div>
+    <div class="feature-item"><span class="fi">👀</span>Attention</div>
+    <div class="feature-item"><span class="fi">📡</span>Morse Code</div>
+    <div class="feature-item"><span class="fi">😂</span>Fun</div>
+  </div>
+  <button class="btn btn-primary" style="width:100%;max-width:340px;font-size:18px;" onclick="startGame()">Let's Escape! 🚀</button>
+  <div class="brand-tag">📘 English Project · Amin Ben Ameur</div>
+  <p style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.25);">5 challenges · No time limit · Pure brainpower</p>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div class="screen" id="game">
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span id="progress-text">Challenge 1 of 5</span>
+      <div class="score-badge">⭐ <span id="score-display">0</span> pts</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+  <div class="card" id="challenge-card">
+    <!-- Challenges injected here -->
+  </div>
+</div>
+
+<!-- ===== WIN SCREEN ===== -->
+<div class="screen" id="win">
+  <div class="card" style="max-width:460px;text-align:center;">
+    <div style="font-size:60px;margin-bottom:8px;">🎉</div>
+    <h1>You Escaped!</h1>
+    <p style="color:var(--chalk2);font-size:15px;margin-bottom:4px;">The classroom door is open. You're a legend!</p>
+    <div class="stars-row">
+      <span class="star" id="s1">⭐</span>
+      <span class="star" id="s2">⭐</span>
+      <span class="star" id="s3">⭐</span>
+    </div>
+    <div class="final-stats">
+      <div class="final-stat"><div class="final-stat-num" id="final-score">0</div><div class="final-stat-label">POINTS</div></div>
+      <div class="final-stat"><div class="final-stat-num" id="final-correct">0</div><div class="final-stat-label">CORRECT</div></div>
+      <div class="final-stat"><div class="final-stat-num" id="final-time">0s</div><div class="final-stat-label">TIME</div></div>
+    </div>
+    <div id="result-message" style="background:rgba(244,196,48,0.12);border:1.5px solid var(--accent);border-radius:14px;padding:14px;margin:10px 0 20px;font-size:14px;font-weight:700;color:var(--accent);line-height:1.6;"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="restartGame()">Play Again 🔄</button>
+    <div class="brand-tag" style="margin-top:12px;">📘 English Project · Amin Ben Ameur</div>
+  </div>
+</div>
+
+<script>
+let currentChallenge = 0;
+let score = 0;
+let correctCount = 0;
+let startTime;
+let memoryVisible = true;
+let memoryTimer;
+let selectedWord = null;
+let answered = false;
+
+const challenges = [
+  // ─── CHALLENGE 1: Riddle ───
+  {
+    type: 'riddle',
+    num: '🎯 Challenge 1',
+    title: 'The Classic Riddle',
+    emoji: '🤔',
+    question: 'What has keys but no locks, space but no room, and you can enter but cannot go inside?',
+    hint: 'You use it every single day at school (and right now, probably).',
+    options: [
+      { text: 'A map of a very organised teacher', letter: 'A' },
+      { text: 'A keyboard ⌨️', letter: 'B' },
+      { text: 'A dictionary (it has lots of entries!)', letter: 'C' },
+      { text: 'A very fancy prison for letters', letter: 'D' },
+    ],
+    correct: 1,
+    correctMsg: '🎉 YES! A keyboard has keys, a space bar, and an enter key — but no locks, no rooms, and no real entrance. Classic!',
+    wrongMsg: '❌ Nope! Think about something you use to type... It has keys... and a SPACE... and ENTER...',
+  },
+
+  // ─── CHALLENGE 2: Memory ───
+  {
+    type: 'memory',
+    num: '🧠 Challenge 2',
+    title: 'Memory Master',
+    question: 'Memorise these 6 items! You have 5 seconds... then they disappear. 👀',
+    items: ['📚', '🖊️', '🔭', '🍎', '📐', '🎒'],
+    missingIndex: 4, // 📐 will be removed in the question
+    questionText: 'Which item was in the grid but is now MISSING?',
+    options: [
+      { text: '📚 Books', letter: 'A' },
+      { text: '🧲 Magnet', letter: 'B' },
+      { text: '📐 Ruler/Set Square', letter: 'C' },
+      { text: '🍎 Apple', letter: 'D' },
+    ],
+    correct: 2,
+    correctMsg: '🏆 Incredible memory! The 📐 set square was there and then it vanished. Your brain is a steel trap!',
+    wrongMsg: '😅 Almost! The missing item was the 📐 set square. Train those memory muscles!',
+  },
+
+  // ─── CHALLENGE 3: Spot the Fake Fact ───
+  {
+    type: 'fact',
+    num: '🕵️ Challenge 3',
+    title: 'Spot the Fake!',
+    question: 'One of these "facts" is completely FAKE (and probably silly). Can you find it?',
+    sub: 'Tap the card that is NOT a real fact.',
+    facts: [
+      { emoji: '🐙', text: 'Octopuses have 3 hearts and blue blood', fake: false },
+      { emoji: '🍯', text: 'Honey never expires — archaeologists found 3000-year-old honey that was still good!', fake: false },
+      { emoji: '🦈', text: 'Sharks are the only animals that never blink, because they\'re always in a staring contest with the ocean', fake: true },
+      { emoji: '🐘', text: 'Elephants are the only animals that cannot jump', fake: false },
+    ],
+    correctMsg: '🎯 Gotcha! Sharks DO have eyelids (called nictitating membranes) and are definitely NOT in a staring contest. Nice critical thinking!',
+    wrongMsg: '❌ That one is actually TRUE! The fake one was the shark fact — sharks do have eyelids, and the ocean doesn\'t do staring contests.',
+  },
+
+  // ─── CHALLENGE 4: MORSE CODE ───
+  {
+    type: 'morse',
+    num: '📡 Challenge 4',
+    title: 'Morse Code Vault',
+    // PHASE 1 — decode
+    phase1: {
+      question: 'The vault is locked with a secret word. Decode this Morse code transmission to find it!',
+      signal: '.-.. . .- .-. -.',
+      hint: 'Each group of dots & dashes = one letter. Spaces separate letters.',
+      options: [
+        { text: 'ANGEL', letter: 'A' },
+        { text: 'BRAIN', letter: 'B' },
+        { text: 'LEARN', letter: 'C' },
+        { text: 'READS', letter: 'D' },
+      ],
+      correct: 2,
+      correctMsg: '🎉 LEARN! L(.-.. ) E(.) A(.-) R(.-.) N(-.) — You cracked phase one! Now ENCODE to unlock the vault...',
+      wrongMsg: '❌ Not quite. Break it by spaces: .-.. → L  . → E  .- → A  .-. → R  -. → N  → LEARN!',
+    },
+    // PHASE 2 — encode letter by letter
+    phase2: {
+      question: 'Now ENCODE the word below into Morse code, letter by letter. Use the dot (·) and dash (—) buttons!',
+      word: 'READ',
+      codes: { R: '.-.', E: '.', A: '.-', D: '-..'},
+    },
+    correctMsg: '🏆 PERFECT ENCODING! R(.-.) E(.) A(.-) D(-.. ) — You are a certified Morse Code operator!',
+    wrongMsg: '❌ Check your dots & dashes and try again! Use the reference table above.',
+  },
+
+  // ─── CHALLENGE 5: Find the Mistake ───
+  {
+    type: 'mistake',
+    num: '👁️ Challenge 5',
+    title: 'Find the Mistake',
+    question: 'This paragraph has ONE word that does not belong. Tap it to escape!',
+    sub: '⚠️ Read every single word carefully. Don\'t rush!',
+    words: [
+      'The', 'sun', 'rises', 'in', 'the', 'east', 'and', 'sets', 'in', 'the',
+      'north', '.', 'Every', 'morning', ',', 'its', 'light', 'wakes', 'up',
+      'the', 'world', 'and', 'every', 'evening', 'it', 'paints', 'the', 'sky',
+      'orange', 'and', 'pink', '.'
+    ],
+    wrongWord: 'north',
+    correctWord: 'west',
+    correctMsg: '👁️ EAGLE EYES! "north" should be "west" — the sun sets in the west, not the north. You\'re impossibly attentive!',
+    wrongMsg: '❌ That\'s not the mistake! Read again very carefully... The sun sets in which direction?',
+  },
+];
+
+function startGame() {
+  score = 0;
+  correctCount = 0;
+  currentChallenge = 0;
+  answered = false;
+  startTime = Date.now();
+  showScreen('game');
+  renderChallenge();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateProgress() {
+  const pct = (currentChallenge / challenges.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `Challenge ${currentChallenge + 1} of ${challenges.length}`;
+  document.getElementById('score-display').textContent = score;
+}
+
+function renderChallenge() {
+  updateProgress();
+  answered = false;
+  const c = challenges[currentChallenge];
+  const card = document.getElementById('challenge-card');
+
+  if (c.type === 'riddle') renderRiddle(c, card);
+  else if (c.type === 'memory') renderMemory(c, card);
+  else if (c.type === 'fact') renderFact(c, card);
+  else if (c.type === 'morse') renderMorse(c, card);
+  else if (c.type === 'pattern') renderPattern(c, card);
+  else if (c.type === 'mistake') renderMistake(c, card);
+}
+
+function renderRiddle(c, card) {
+  card.innerHTML = `
+    <div class="challenge-header"><span class="challenge-num">${c.num}</span></div>
+    <h2 style="margin-top:8px;">${c.title}</h2>
+    <div class="riddle-emoji">${c.emoji}</div>
+    <p class="question-text">${c.question}</p>
+    <div class="clue-box">💡 Hint: ${c.hint}</div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="next-wrap" id="next-wrap" style="display:none;">
+      <button class="btn btn-primary" onclick="nextChallenge()">Next Challenge →</button>
+    </div>
+  `;
+  const opts = document.getElementById('options');
+  c.options.forEach((o, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${o.letter}</span>${o.text}`;
+    btn.onclick = () => answerRiddle(i, c);
+    opts.appendChild(btn);
+  });
+}
+
+function answerRiddle(idx, c) {
+  if (answered) return;
+  answered = true;
+  const btns = document.querySelectorAll('.option-btn');
+  const fb = document.getElementById('feedback');
+  btns.forEach(b => b.disabled = true);
+  if (idx === c.correct) {
+    btns[idx].classList.add('correct');
+    fb.className = 'feedback correct';
+    fb.innerHTML = c.correctMsg;
+    score += 200; correctCount++;
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[c.correct].classList.add('correct');
+    fb.className = 'feedback wrong';
+    fb.innerHTML = c.wrongMsg;
+  }
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('next-wrap').style.display = 'flex';
+}
+
+function renderMemory(c, card) {
+  card.innerHTML = `
+    <div class="challenge-header"><span class="challenge-num">${c.num}</span></div>
+    <h2 style="margin-top:8px;">${c.title}</h2>
+    <p class="question-text">${c.question}</p>
+    <div id="countdown-wrap" style="text-align:center;margin:10px 0;">
+      <div class="countdown-big" id="countdown">5</div>
+      <p style="color:var(--chalk2);font-size:13px;">seconds to memorise!</p>
+    </div>
+    <div class="memory-grid" id="mem-grid"></div>
+    <div id="mem-question" style="display:none;">
+      <p class="question-text">${c.questionText}</p>
+      <div class="options" id="mem-options"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="next-wrap" id="next-wrap" style="display:none;">
+        <button class="btn btn-primary" onclick="nextChallenge()">Next Challenge →</button>
+      </div>
+    </div>
+  `;
+  const grid = document.getElementById('mem-grid');
+  c.items.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'memory-item';
+    d.textContent = item;
+    grid.appendChild(d);
+  });
+
+  let secs = 5;
+  const cdEl = document.getElementById('countdown');
+  const interval = setInterval(() => {
+    secs--;
+    cdEl.textContent = secs;
+    cdEl.style.animation = 'none';
+    cdEl.offsetHeight;
+    cdEl.style.animation = 'pop 0.3s ease';
+    if (secs <= 0) {
+      clearInterval(interval);
+      document.getElementById('countdown-wrap').innerHTML = '<p style="color:var(--accent2);font-weight:800;font-size:15px;">⏰ Time\'s up! Now answer from memory...</p>';
+      document.querySelectorAll('.memory-item').forEach(el => el.classList.add('hidden'));
+      document.getElementById('mem-question').style.display = 'block';
+      const opts = document.getElementById('mem-options');
+      c.options.forEach((o, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `<span class="option-letter">${o.letter}</span>${o.text}`;
+        btn.onclick = () => answerMemory(i, c);
+        opts.appendChild(btn);
+      });
+    }
+  }, 1000);
+}
+
+function answerMemory(idx, c) {
+  if (answered) return; answered = true;
+  const btns = document.querySelectorAll('#mem-options .option-btn');
+  const fb = document.getElementById('feedback');
+  btns.forEach(b => b.disabled = true);
+  if (idx === c.correct) {
+    btns[idx].classList.add('correct');
+    fb.className = 'feedback correct'; fb.innerHTML = c.correctMsg;
+    score += 200; correctCount++;
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[c.correct].classList.add('correct');
+    fb.className = 'feedback wrong'; fb.innerHTML = c.wrongMsg;
+  }
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('next-wrap').style.display = 'flex';
+}
+
+function renderFact(c, card) {
+  card.innerHTML = `
+    <div class="challenge-header"><span class="challenge-num">${c.num}</span></div>
+    <h2 style="margin-top:8px;">${c.title}</h2>
+    <p class="question-text">${c.question}</p>
+    <p class="question-sub">${c.sub}</p>
+    <div class="fact-grid" id="fact-grid"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="next-wrap" id="next-wrap" style="display:none;">
+      <button class="btn btn-primary" onclick="nextChallenge()">Next Challenge →</button>
+    </div>
+  `;
+  const grid = document.getElementById('fact-grid');
+  c.facts.forEach((f, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'fact-card';
+    btn.innerHTML = `<span class="fact-emoji">${f.emoji}</span>${f.text}`;
+    btn.onclick = () => answerFact(i, c);
+    grid.appendChild(btn);
+  });
+}
+
+function answerFact(idx, c) {
+  if (answered) return; answered = true;
+  const cards = document.querySelectorAll('.fact-card');
+  const fb = document.getElementById('feedback');
+  cards.forEach(b => b.disabled = true);
+  if (c.facts[idx].fake) {
+    cards[idx].classList.add('correct');
+    fb.className = 'feedback correct'; fb.innerHTML = c.correctMsg;
+    score += 200; correctCount++;
+  } else {
+    cards[idx].classList.add('wrong');
+    c.facts.forEach((f, i) => { if (f.fake) cards[i].classList.add('correct'); });
+    fb.className = 'feedback wrong'; fb.innerHTML = c.wrongMsg;
+  }
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('next-wrap').style.display = 'flex';
+}
+
+function renderMorse(c, card) {
+  const morseAlpha = {A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
+  const tableHTML = Object.entries(morseAlpha).map(([l,m])=>`<div class="morse-cell"><span class="ml">${l}</span><span class="mc">${m}</span></div>`).join('');
+  let phase1Done = false;
+  let morseCurrentLetterIdx = 0;
+  let morseInput = '';
+  let morseLettersDone = [];
+
+  function buildCard() {
+    card.innerHTML = `
+      <div class="challenge-header"><span class="challenge-num">${c.num}</span></div>
+      <h2 style="margin-top:8px;">${c.title}</h2>
+      <div class="morse-ref-toggle" onclick="toggleMorseRef()">
+        <span>📋 Morse Code Reference Table</span><span id="ref-arrow">▼</span>
+      </div>
+      <div id="morse-ref" style="display:none;"><div class="morse-table">${tableHTML}</div></div>
+      <div id="morse-phase"></div>
+    `;
+    if (!phase1Done) renderPhase1();
+    else renderPhase2();
+  }
+
+  function toggleMorseRef() {
+    const ref = document.getElementById('morse-ref');
+    const arr = document.getElementById('ref-arrow');
+    if (ref.style.display === 'none') { ref.style.display = 'block'; arr.textContent = '▲'; }
+    else { ref.style.display = 'none'; arr.textContent = '▼'; }
+  }
+
+  function renderPhase1() {
+    const p = c.phase1;
+    const ph = document.getElementById('morse-phase');
+    ph.innerHTML = `
+      <div class="phase-badge">PHASE 1 of 2 — Decode</div>
+      <p class="question-text">${p.question}</p>
+      <div class="morse-signal">${p.signal}</div>
+      <div class="clue-box">💡 ${p.hint}</div>
+      <div class="options" id="morse-opts"></div>
+      <div class="feedback" id="feedback"></div>
+    `;
+    const opts = document.getElementById('morse-opts');
+    p.options.forEach((o,i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.innerHTML = `<span class="option-letter">${o.letter}</span>${o.text}`;
+      btn.onclick = () => {
+        if (phase1Done) return;
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(b => b.disabled = true);
+        const fb = document.getElementById('feedback');
+        if (i === p.correct) {
+          btn.classList.add('correct');
+          fb.className = 'feedback correct'; fb.innerHTML = p.correctMsg;
+          phase1Done = true;
+          setTimeout(() => renderPhase2(), 1800);
+        } else {
+          btn.classList.add('wrong');
+          allBtns[p.correct].classList.add('correct');
+          fb.className = 'feedback wrong'; fb.innerHTML = p.wrongMsg;
+          setTimeout(() => {
+            phase1Done = true;
+            renderPhase2();
+          }, 2500);
+        }
+      };
+      opts.appendChild(btn);
+    });
+  }
+
+  function renderPhase2() {
+    const p2 = c.phase2;
+    const letters = p2.word.split('');
+    morseCurrentLetterIdx = 0; morseInput = ''; morseLettersDone = [];
+    const ph = document.getElementById('morse-phase');
+    ph.innerHTML = `
+      <div class="phase-badge">PHASE 2 of 2 — Encode</div>
+      <p class="question-text">${p2.question}</p>
+      <div style="text-align:center;margin:10px 0;">
+        <span style="font-family:'Fredoka One',cursive;font-size:2rem;color:var(--accent);letter-spacing:8px;">${p2.word}</span>
+      </div>
+      <div class="letter-progress" id="letter-progress">
+        ${letters.map((l,i)=>`<div class="letter-pip ${i===0?'active':''}" id="pip-${i}">${l}</div>`).join('')}
+      </div>
+      <p style="text-align:center;font-size:13px;color:var(--chalk2);margin-bottom:8px;">
+        Encoding letter: <strong style="color:var(--accent);font-size:18px;" id="current-letter">${letters[0]}</strong>
+      </p>
+      <div class="morse-input-display" id="morse-display">_</div>
+      <div class="morse-btns">
+        <button class="morse-dot" onclick="morseTap('.')">· DOT</button>
+        <button class="morse-dash" onclick="morseTap('-')">— DASH</button>
+      </div>
+      <div class="morse-util-btns">
+        <button class="morse-back" onclick="morseBack()">⌫ Backspace</button>
+        <button class="morse-clear" onclick="morseClear()">✕ Clear</button>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="checkMorseLetter()">✓ Confirm This Letter</button>
+      <div class="feedback" id="feedback" style="margin-top:10px;"></div>
+      <div class="next-wrap" id="next-wrap" style="display:none;">
+        <button class="btn btn-primary" onclick="nextChallenge()">🎉 See Results!</button>
+      </div>
+    `;
+
+    window.morseTap = function(sym) {
+      if (answered) return;
+      morseInput += sym;
+      const d = document.getElementById('morse-display');
+      if (d) d.textContent = morseInput || '_';
+    };
+    window.morseBack = function() {
+      morseInput = morseInput.slice(0,-1);
+      const d = document.getElementById('morse-display');
+      if (d) d.textContent = morseInput || '_';
+    };
+    window.morseClear = function() {
+      morseInput = '';
+      const d = document.getElementById('morse-display');
+      if (d) d.textContent = '_';
+    };
+    window.checkMorseLetter = function() {
+      if (answered) return;
+      const letters2 = p2.word.split('');
+      const curLetter = letters2[morseCurrentLetterIdx];
+      const expected = p2.codes[curLetter];
+      const fb = document.getElementById('feedback');
+      const disp = document.getElementById('morse-display');
+      if (morseInput.trim() === expected) {
+        if (disp) { disp.style.color = 'var(--correct)'; disp.style.borderColor = 'rgba(85,239,196,0.5)'; }
+        const pip = document.getElementById('pip-'+morseCurrentLetterIdx);
+        if (pip) { pip.classList.remove('active'); pip.classList.add('done'); pip.textContent = '✓'; }
+        morseLettersDone.push(curLetter);
+        morseCurrentLetterIdx++;
+        morseInput = '';
+        if (morseCurrentLetterIdx >= letters2.length) {
+          answered = true;
+          score += 200; correctCount++;
+          document.getElementById('score-display').textContent = score;
+          fb.className = 'feedback correct'; fb.innerHTML = c.correctMsg;
+          document.getElementById('next-wrap').style.display = 'flex';
+        } else {
+          const nextL = letters2[morseCurrentLetterIdx];
+          fb.className = 'feedback correct'; fb.innerHTML = `✅ "${curLetter}" = ${expected} — correct! Next: encode <strong style="color:var(--accent)">${nextL}</strong>`;
+          const nextPip = document.getElementById('pip-'+morseCurrentLetterIdx);
+          if (nextPip) nextPip.classList.add('active');
+          const cl = document.getElementById('current-letter');
+          if (cl) cl.textContent = nextL;
+          setTimeout(() => { if (disp) { disp.style.color='var(--accent3)'; disp.style.borderColor='rgba(78,205,196,0.3)'; disp.textContent = '_'; } }, 400);
+        }
+      } else {
+        if (disp) { disp.style.color='var(--wrong)'; disp.style.borderColor='rgba(255,118,117,0.5)'; disp.style.animation='shake 0.4s ease'; setTimeout(()=>{ disp.style.animation=''; disp.style.color='var(--accent3)'; disp.style.borderColor='rgba(78,205,196,0.3)'; },500); }
+        fb.className = 'feedback wrong'; fb.innerHTML = `❌ Not quite! You entered: <span style="font-family:monospace;letter-spacing:2px;">${morseInput}</span><br>Try again — the code for <strong>${curLetter}</strong> uses ${expected.length} symbol(s).`;
+        morseInput = ''; setTimeout(()=>{ if(disp) disp.textContent='_'; },400);
+      }
+    };
+  }
+
+  buildCard();
+  window.toggleMorseRef = toggleMorseRef;
+}
+
+function renderPattern(c, card) {
+  const seqHTML = c.sequence.map((v, i) => {
+    if (v === '?') return `<div class="pattern-box blank"><input class="pattern-input" id="pattern-input" maxlength="4" placeholder="?" autocomplete="off" /></div>`;
+    return `<div class="pattern-box">${v}</div>${i < c.sequence.length - 1 ? '<span style="color:var(--chalk2);font-size:1.2rem;">→</span>' : ''}`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="challenge-header"><span class="challenge-num">${c.num}</span></div>
+    <h2 style="margin-top:8px;">${c.title}</h2>
+    <p class="question-text">${c.question}</p>
+    <div class="pattern-row">${seqHTML}</div>
+    <div class="clue-box">💡 ${c.hint}</div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-primary" style="width:100%;" onclick="checkPattern()">Check Answer ✓</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="next-wrap" id="next-wrap" style="display:none;">
+      <button class="btn btn-primary" onclick="nextChallenge()">Next Challenge →</button>
+    </div>
+  `;
+  setTimeout(() => {
+    const inp = document.getElementById('pattern-input');
+    if (inp) { inp.focus(); inp.addEventListener('keydown', e => { if (e.key === 'Enter') checkPattern(); }); }
+  }, 100);
+}
+
+function checkPattern() {
+  if (answered) return;
+  const c = challenges[currentChallenge];
+  const inp = document.getElementById('pattern-input');
+  const val = inp ? inp.value.trim() : '';
+  const fb = document.getElementById('feedback');
+  answered = true;
+  if (inp) inp.disabled = true;
+  if (val === c.answer) {
+    fb.className = 'feedback correct'; fb.innerHTML = c.correctMsg;
+    score += 200; correctCount++;
+  } else {
+    fb.className = 'feedback wrong'; fb.innerHTML = typeof c.wrongMsg === 'function' ? c.wrongMsg(val) : c.wrongMsg;
+  }
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('next-wrap').style.display = 'flex';
+}
+
+function renderMistake(c, card) {
+  const wordEls = c.words.map((w, i) => {
+    const isPunct = ['.', ',', '!', '?'].includes(w);
+    if (isPunct) return `<span>${w}</span>`;
+    return `<span class="highlight-word" data-index="${i}" onclick="selectWord(this, '${w}')">${w}</span>`;
+  }).join(' ');
+
+  card.innerHTML = `
+    <div class="challenge-header"><span class="challenge-num">${c.num}</span></div>
+    <h2 style="margin-top:8px;">${c.title}</h2>
+    <p class="question-text">${c.question}</p>
+    <p class="question-sub">${c.sub}</p>
+    <div class="text-passage">${wordEls}</div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary" style="width:100%;" onclick="checkMistake()">This is the mistake! ✓</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="next-wrap" id="next-wrap" style="display:none;">
+      <button class="btn btn-primary" onclick="nextChallenge()">🎉 See Results!</button>
+    </div>
+  `;
+  selectedWord = null;
+}
+
+function selectWord(el, word) {
+  if (answered) return;
+  document.querySelectorAll('.highlight-word').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedWord = word;
+}
+
+function checkMistake() {
+  if (answered) return;
+  if (!selectedWord) { alert('Tap a word first! 👆'); return; }
+  const c = challenges[currentChallenge];
+  answered = true;
+  const fb = document.getElementById('feedback');
+  if (selectedWord === c.wrongWord) {
+    document.querySelectorAll('.highlight-word').forEach(e => { if (e.textContent === c.wrongWord) e.classList.add('correct-word'); });
+    fb.className = 'feedback correct'; fb.innerHTML = c.correctMsg;
+    score += 200; correctCount++;
+  } else {
+    document.querySelectorAll('.highlight-word').forEach(e => {
+      if (e.textContent === selectedWord) e.classList.add('wrong-word');
+      if (e.textContent === c.wrongWord) e.classList.add('correct-word');
+    });
+    fb.className = 'feedback wrong'; fb.innerHTML = c.wrongMsg;
+  }
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('next-wrap').style.display = 'flex';
+}
+
+function nextChallenge() {
+  currentChallenge++;
+  if (currentChallenge >= challenges.length) {
+    showWin();
+  } else {
+    updateProgress();
+    renderChallenge();
+  }
+}
+
+function showWin() {
+  const elapsed = Math.round((Date.now() - startTime) / 1000);
+  showScreen('win');
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('final-correct').textContent = correctCount + '/5';
+  document.getElementById('final-time').textContent = elapsed + 's';
+
+  const msgs = {
+    5: '🏆 PERFECT SCORE! You are the ultimate classroom escapee. Einstein called — he wants tips.',
+    4: '🌟 Amazing! You got 4 out of 5. One little slip, but still legendary.',
+    3: '👍 Solid work! 3 out of 5 — you\'re smarter than the average locked door.',
+    2: '😅 2 out of 5. The door is slightly ajar. More training needed!',
+    1: '🙈 1 out of 5... At least you tried! The classroom sends its regards.',
+    0: '😂 0 out of 5?! The classroom has locked itself harder just for you. Try again!'
+  };
+  document.getElementById('result-message').innerHTML = msgs[correctCount] || msgs[0];
+
+  // Confetti!
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti-piece';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      c.style.animationDelay = Math.random() * 1.5 + 's';
+      const colors = ['#f4c430','#ff6b6b','#4ecdc4','#a29bfe','#55efc4','#fd79a8'];
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 5000);
+    }, i * 40);
+  }
+
+  // Stars based on score
+  const starEls = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
+  starEls.forEach((s, i) => {
+    if (i < Math.ceil(correctCount / 2)) s.textContent = '⭐';
+    else s.textContent = '☆';
+  });
+}
+
+function restartGame() {
+  startGame();
+}
+</script>
+</body>
+</html>
